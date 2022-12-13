@@ -1,119 +1,126 @@
-import React, { FC, useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import style from './style.module.css';
-import { getUsers } from '../../api';
-type SelectOption = {
+
+export type SelectOption = {
 	username: string;
 	value: string | number;
 };
-type SelectProps = {
-	userName: SelectOption[];
+type SingleSelectProps = {
+	multiple?: false;
 	value?: SelectOption;
 	onChange: (value: SelectOption | undefined) => void;
 };
+type MultipleSelectProps = {
+	multiple: true;
+	value: SelectOption[];
+	onChange: (value: SelectOption[]) => void;
+};
+type SelectProps = {
+	userName: SelectOption[];
+} & (SingleSelectProps | MultipleSelectProps);
 
-export const Home = ({ value, onChange, userName }: SelectProps) => {
+export const Home = ({ multiple, value, onChange, userName }: SelectProps) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [highlightedIndex, setHighlightedIndex] = useState(0);
+	const containerRef = useRef<HTMLDivElement>(null);
 
 	const clearOptions = () => {
-		onChange(undefined);
+		multiple ? onChange([]) : onChange(undefined);
 	};
 
 	const selectOption = (userName: SelectOption) => {
-		if (userName !== value) onChange(userName);
+		if (multiple) {
+			if (value.includes(userName)) {
+				onChange(value.filter(el => el !== userName));
+			} else {
+				onChange([...value, userName]);
+			}
+		} else {
+			if (userName !== value) onChange(userName);
+		}
 	};
 
 	const isOptionSelected = (userName: SelectOption) => {
-		return userName === value;
+		return multiple ? value.includes(userName) : userName === value;
 	};
 
 	useEffect(() => {
 		if (isOpen) setHighlightedIndex(0);
 	}, [isOpen]);
 
+	useEffect(() => {
+		const handler = (e: KeyboardEvent) => {
+			if (e.target != containerRef.current) return;
+			switch (e.code) {
+				case 'Escape':
+					setIsOpen(false);
+					break;
+			}
+		};
+		containerRef.current?.addEventListener('keydown', handler);
+		return () => {
+			containerRef.current?.removeEventListener('keydown', handler);
+		};
+	}, []);
+
 	return (
-		<>
-			<div
-				tabIndex={0}
-				onBlur={() => setIsOpen(false)}
-				onClick={() => setIsOpen(prev => !prev)}
-				className={style.container}
+		<div
+			ref={containerRef}
+			tabIndex={0}
+			onBlur={() => setIsOpen(false)}
+			onClick={() => setIsOpen(prev => !prev)}
+			className={style.container}
+		>
+			<span className={style.value}>
+				{multiple
+					? value?.map(el => (
+							<button
+								key={el.value}
+								onClick={e => {
+									e.stopPropagation();
+									selectOption(el);
+								}}
+								className={style['option-badge']}
+							>
+								{el.username}
+								<span className={style['remove-btn']}>
+									&times;
+								</span>
+							</button>
+					  ))
+					: value?.username}
+			</span>
+			<button
+				onClick={e => {
+					e.stopPropagation();
+					clearOptions();
+				}}
+				className={style['clear-btn']}
 			>
-				<span className={style.value}>{value?.username}</span>
-				<button
-					onClick={e => {
-						e.stopPropagation();
-						clearOptions();
-					}}
-					className={style['clear-btn']}
-				>
-					&times;
-				</button>
-				<div className={style.divider}></div>
-				<div className={style.caret}></div>
-				<ul className={`${style.options} ${isOpen ? style.show : ''}`}>
-					{userName.map((el, index) => (
-						<li
-							onClick={e => {
-								e.stopPropagation();
-								selectOption(el);
-								setIsOpen(false);
-							}}
-							onMouseEnter={() => setHighlightedIndex(index)}
-							className={`${style.option} ${
-								isOptionSelected(el) ? style.selected : ''
-							} ${
-								index === highlightedIndex
-									? style.highlighted
-									: ''
-							}`}
-							key={el.value}
-						>
-							{el.username}
-						</li>
-					))}
-				</ul>
-			</div>
-		</>
+				&times;
+			</button>
+			<div className={style.divider}></div>
+			<div className={style.caret}></div>
+			<ul className={`${style.options} ${isOpen ? style.show : ''}`}>
+				{userName.map((el, index) => (
+					<li
+						onClick={e => {
+							e.stopPropagation();
+							selectOption(el);
+							setIsOpen(false);
+						}}
+						onMouseEnter={() => setHighlightedIndex(index)}
+						className={`${style.option} ${
+							isOptionSelected(el) ? style.selected : ''
+						} ${
+							index === highlightedIndex ? style.highlighted : ''
+						}`}
+						key={el.value}
+					>
+						{el.username}
+					</li>
+				))}
+			</ul>
+		</div>
 	);
 };
-
-// export const Home = () => {
-// 	const [userName, setUserName] = useState([]);
-// 	const [isShow, setIsShow] = useState(false);
-// 	const [title, setTitle] = useState([':']);
-// 	const onClickCard = () => {
-// 		isShow === false ? setIsShow(true) : setIsShow(false);
-// 	};
-
-// 	const pushItem = (username: string) => {
-// 		console.log(username);
-
-// 		setTitle(title.concat(username + ' '));
-// 	};
-
-// 	useEffect(() => {
-// 		(async () => {
-// 			const users = await getUsers();
-// 			const userName = users.map(({ id, username }: IUsers) => ({
-// 				id,
-// 				username
-// 			}));
-// 			setUserName(userName);
-// 		})();
-// 	}, []);
-
-// 	console.log(userName);
-
-// 	return (
-// 		<div className={style.input} onClick={() => onClickCard()}>
-// 			<p>{title}</p>
-// 			{isShow &&
-// 				userName.map((el: IUsers) => (
-// 					<div key={el.id} onClick={() => pushItem(el.username)}>
-// 						{el.username} <span>x</span>
-// 					</div>
-// 				))}
-// 		</div>
-// 	);
-// };

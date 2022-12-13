@@ -1,7 +1,8 @@
 import React, { FC, useEffect, useState } from 'react';
 import { Home } from './components/Home';
 import { getUsers } from './api';
-type SelectOption = {
+import { SelectOption } from './components/Home';
+type SelectOptionApp = {
 	username: string;
 	value: string | number;
 	id: string | number;
@@ -13,19 +14,19 @@ export const App = () => {
 	useEffect(() => {
 		(async () => {
 			const users = await getUsers();
-			const userName = users.map(({ id, username }: SelectOption) => ({
+			const userName = users.map(({ id, username }: SelectOptionApp) => ({
 				value: id,
 				username
 			}));
 			setUserName(userName);
-			setValue(userName[0]);
 		})();
 	}, []);
-	const [value, setValue] = useState(userName[0]);
-	console.log(userName[0]);
+	const [value, setValue] = useState<SelectOption[]>([]);
+
 	return (
 		<div>
 			<Home
+				multiple
 				userName={userName}
 				value={value}
 				onChange={e => setValue(e)}
