@@ -1,37 +1,74 @@
 import React, { FC, useEffect, useState } from 'react';
 import style from './style.module.css';
 import { getUsers } from '../../api';
-interface IUsers {
-	id: number;
-	value: number;
+type SelectOption = {
 	username: string;
-}
+	value: string | number;
+};
+type SelectProps = {
+	userName: SelectOption[];
+	value?: SelectOption;
+	onChange: (value: SelectOption | undefined) => void;
+};
 
-export const Home = () => {
-	const [userName, setUserName] = useState([]);
+export const Home = ({ value, onChange, userName }: SelectProps) => {
+	const [isOpen, setIsOpen] = useState(false);
+	const [highlightedIndex, setHighlightedIndex] = useState(0);
+
+	const clearOptions = () => {
+		onChange(undefined);
+	};
+
+	const selectOption = (userName: SelectOption) => {
+		if (userName !== value) onChange(userName);
+	};
+
+	const isOptionSelected = (userName: SelectOption) => {
+		return userName === value;
+	};
 
 	useEffect(() => {
-		(async () => {
-			const users = await getUsers();
-			const userName = users.map(({ id, username }: IUsers) => ({
-				value: id,
-				username
-			}));
-			setUserName(userName);
-		})();
-	}, []);
-	console.log(userName);
+		if (isOpen) setHighlightedIndex(0);
+	}, [isOpen]);
 
 	return (
 		<>
-			<div tabIndex={0} className={style.container}>
-				<span className={style.value}>value</span>
-				<button className={style['clear-btn']}>&times;</button>
+			<div
+				tabIndex={0}
+				onBlur={() => setIsOpen(false)}
+				onClick={() => setIsOpen(prev => !prev)}
+				className={style.container}
+			>
+				<span className={style.value}>{value?.username}</span>
+				<button
+					onClick={e => {
+						e.stopPropagation();
+						clearOptions();
+					}}
+					className={style['clear-btn']}
+				>
+					&times;
+				</button>
 				<div className={style.divider}></div>
 				<div className={style.caret}></div>
-				<ul className={style.options}>
-					{userName.map((el: IUsers) => (
-						<li className={style.option} key={el.value}>
+				<ul className={`${style.options} ${isOpen ? style.show : ''}`}>
+					{userName.map((el, index) => (
+						<li
+							onClick={e => {
+								e.stopPropagation();
+								selectOption(el);
+								setIsOpen(false);
+							}}
+							onMouseEnter={() => setHighlightedIndex(index)}
+							className={`${style.option} ${
+								isOptionSelected(el) ? style.selected : ''
+							} ${
+								index === highlightedIndex
+									? style.highlighted
+									: ''
+							}`}
+							key={el.value}
+						>
 							{el.username}
 						</li>
 					))}
